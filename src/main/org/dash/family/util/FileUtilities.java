@@ -125,7 +125,7 @@ public class FileUtilities {
 	}
 	
 	// TODO:  Write test
-	public String organizeFiles(String baseDir) {
+	public static String organizeFiles(String baseDir) {
 		// Establish the base directory
 		baseDir = baseDir.endsWith("/") ? baseDir : (baseDir + "/");
 		File directory = new File(baseDir);
@@ -177,7 +177,7 @@ public class FileUtilities {
 		return output.toString();
 	}
 	
-	private HashMap<String, Pedigree> getPedigree(File pedFile) {
+	private static HashMap<String, Pedigree> getPedigree(File pedFile) {
 		HashMap<String, Pedigree> pedigreeMap = new HashMap<String, Pedigree>();
 		List<Parents> parentSet = new ArrayList<Parents>();
 		
@@ -245,7 +245,7 @@ public class FileUtilities {
 		return pedigreeMap;
 	}
 	
-	private HashMap<String, IndividualInfo> getIndividualInfo(File individualInfoFile) {
+	private static HashMap<String, IndividualInfo> getIndividualInfo(File individualInfoFile) {
 		HashMap<String, IndividualInfo> individualInfoMap = new HashMap<String, IndividualInfo>();
 		
 		BufferedReader reader = null;
@@ -274,7 +274,7 @@ public class FileUtilities {
 		return individualInfoMap;
 	}
 	
-	private HashMap<String, String> getGLString(File hmlFile) {
+	private static HashMap<String, String> getGLString(File hmlFile) {
 		HashMap<String, String> glStringMap = new HashMap<String, String>();
 		
 		BufferedReader reader = null;
@@ -330,7 +330,7 @@ public class FileUtilities {
 		// use family id to establish file name
 	}
 	
-	private class HMLFileFilter implements FilenameFilter {
+	private static class HMLFileFilter implements FilenameFilter {
 
 		@Override
 		public boolean accept(File dir, String name) {
@@ -341,7 +341,7 @@ public class FileUtilities {
 		
 	}
 	
-	private class PEDFileFilter implements FilenameFilter {
+	private static class PEDFileFilter implements FilenameFilter {
 		@Override
 		public boolean accept(File dir, String name) {
 			if (name.endsWith(PED)) return true;
@@ -350,7 +350,7 @@ public class FileUtilities {
 		}
 	}
 	
-	private class InfoFileFilter implements FilenameFilter {
+	private static class InfoFileFilter implements FilenameFilter {
 		@Override
 		public boolean accept(File dir, String name) {
 			if (name.contains(INFO) && name.endsWith(CSV)) return true;

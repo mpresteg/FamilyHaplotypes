@@ -11,6 +11,8 @@ public class Person {
 	
 	private String labCode;
 	
+	private Haplotype haplotype;
+	
 	public String getGlstring() {
 		return glstring;
 	}

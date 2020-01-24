@@ -47,4 +47,8 @@ public class FileUtilitiesTest {
 		assertTrue(father.getSampleId().equals(FATHER_SAMPLE_ID));
 	}
 
+	@Test
+	public void testParseStandardFileInputs() {
+		System.out.println(FileUtilities.organizeFiles("src/test/resources"));
+	}
 }
