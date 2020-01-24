@@ -36,14 +36,14 @@ public class FileUtilitiesTest {
 		
 		Person child = family.getChildren().get(0);
 		assertTrue(child != null);
-		assertTrue(child.getGlstring().equals(CHILD_GL_STRING));
+		assertTrue(child.getGenotype().getGlString().equals(CHILD_GL_STRING));
 		assertTrue(child.getSampleId().equals(CHILD_SAMPLE_ID));
 		assertTrue(child.getEthnicity().equals(ETHNICITY));
 		assertTrue(child.getLabCode().equals(LAB_CODE));
 		assertTrue(family.getFamilyId().equals(FAMILY_ID));
-		assertTrue(mother.getGlstring().equals(MOTHER_GL_STRING));
+		assertTrue(mother.getGenotype().getGlString().equals(MOTHER_GL_STRING));
 		assertTrue(mother.getSampleId().equals(MOTHER_SAMPLE_ID));
-		assertTrue(father.getGlstring().equals(FATHER_GL_STRING));
+		assertTrue(father.getGenotype().getGlString().equals(FATHER_GL_STRING));
 		assertTrue(father.getSampleId().equals(FATHER_SAMPLE_ID));
 	}
 

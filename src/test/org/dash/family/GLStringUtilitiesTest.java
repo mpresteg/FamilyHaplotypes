@@ -43,6 +43,16 @@ public class GLStringUtilitiesTest {
 	private static final String COMPRESSED_DRB1_GENOTYPIC_AMBIGUITY = "HLA-DRB1*15:01:01:01/HLA-DRB1*15:01:01:02/HLA-DRB1*15:01:01:03+HLA-DRB1*15:01:01:01/HLA-DRB1*15:01:01:02/HLA-DRB1*15:01:01:03";
 	private static final String UNCOMPRESSED_DPB1_GENOTYPIC_AMBIGUITY_2 = "HLA-DPB1*02:01:02+HLA-DPB1*13:01:01|HLA-DPB1*02:01:02+HLA-DPB1*107:01|HLA-DPB1*02:01:19+HLA-DPB1*13:01:01|HLA-DPB1*02:01:19+HLA-DPB1*107:01";
 	private static final String COMPRESSED_DPB1_GENOTYPIC_AMBIGUITY_2 = "HLA-DPB1*02:01:02/HLA-DPB1*02:01:19+HLA-DPB1*13:01:01/HLA-DPB1*107:01";
+	
+	private static final String AMBIG_FAMILY_2A_CHILD_1 = "DPB1*03:01:01+DPB1*05:01:01|DPB1*135:01+DPB1*104:01";
+	private static final String AMBIG_FAMILY_2A_CHILD_2 = "DPB1*03:01:01+DPB1*04:01:01|DPB1*124:01+DPB1*350:01";
+	private static final String AMBIG_FAMILY_2A_MOTHER = "DPB1*03:01:01+DPB1*13:01:01|DPB1*03:01:01+DPB1*107:01";
+	private static final String AMBIG_FAMILY_2A_FATHER = "DPB1*04:01:01:01+DPB1*05:01:01";
+	
+	private static final String FAMILY_2A_CHILD_1 = "DPB1*03:01:01+DPB1*05:01:01";
+	private static final String FAMILY_2A_CHILD_2 = "DPB1*03:01:01+DPB1*04:01:01";
+	private static final String FAMILY_2A_MOTHER = "DPB1*03:01:01+DPB1*13:01:01/DPB1*107:01";
+	private static final String FAMILY_2A_FATHER = "DPB1*04:01:01:01+DPB1*05:01:01";
 
 	@Test
 	// TODO: Implement remaining test cases
@@ -65,7 +75,7 @@ public class GLStringUtilitiesTest {
 	
 	@Test
 	public void testParseGLStringIntoLoci() {
-		HashMap<Locus, String> locusMap = GLStringUtilities.getInstance().parseGLStringIntoLoci(MULTI_LOCUS_GL_STRING);
+		HashMap<Locus, String> locusMap = GLStringUtilities.parseGLStringIntoLoci(MULTI_LOCUS_GL_STRING);
 		System.out.println(locusMap.get(Locus.HLA_A));
 		assertTrue(locusMap.get(Locus.HLA_A).equals(A_GL_STRING));
 		assertTrue(locusMap.get(Locus.HLA_B).equals(B_GL_STRING));
@@ -74,10 +84,37 @@ public class GLStringUtilitiesTest {
 	
 	@Test
 	public void testCompressGenotypicAmbiguity() {
-		assertEquals(COMPRESSED_DPB1_GENOTYPIC_AMBIGUITY, GLStringUtilities.getInstance().compressGenotypicAmbiguity(UNCOMPRESSED_DPB1_GENOTYPIC_AMBIGUITY));
-		assertEquals(COMPRESSED_DRB1_GENOTYPIC_AMBIGUITY, GLStringUtilities.getInstance().compressGenotypicAmbiguity(UNCOMPRESSED_DRB1_GENOTYPIC_AMBIGUITY));
-		assertEquals(COMPRESSED_DPB1_GENOTYPIC_AMBIGUITY_2, GLStringUtilities.getInstance().compressGenotypicAmbiguity(UNCOMPRESSED_DPB1_GENOTYPIC_AMBIGUITY_2));
+		assertEquals(COMPRESSED_DPB1_GENOTYPIC_AMBIGUITY, GLStringUtilities.compressGenotypicAmbiguity(UNCOMPRESSED_DPB1_GENOTYPIC_AMBIGUITY));
+		assertEquals(COMPRESSED_DRB1_GENOTYPIC_AMBIGUITY, GLStringUtilities.compressGenotypicAmbiguity(UNCOMPRESSED_DRB1_GENOTYPIC_AMBIGUITY));
+		assertEquals(COMPRESSED_DPB1_GENOTYPIC_AMBIGUITY_2, GLStringUtilities.compressGenotypicAmbiguity(UNCOMPRESSED_DPB1_GENOTYPIC_AMBIGUITY_2));
 
+	}
+	
+	@Test
+	public void testResolveGenotypicAmbiguity() {
+		Family family = new Family();
+		Person mother = new Person();
+		Person father = new Person();
+		Person child1 = new Person();
+		Person child2 = new Person();
+		
+		mother.setGenotype(new Genotype(GLStringUtilities.compressGenotypicAmbiguity(AMBIG_FAMILY_2A_MOTHER)));
+		father.setGenotype(new Genotype(GLStringUtilities.compressGenotypicAmbiguity(AMBIG_FAMILY_2A_FATHER)));
+		child1.setGenotype(new Genotype(GLStringUtilities.compressGenotypicAmbiguity(AMBIG_FAMILY_2A_CHILD_1)));
+		child2.setGenotype(new Genotype(GLStringUtilities.compressGenotypicAmbiguity(AMBIG_FAMILY_2A_CHILD_2)));
+		
+		family.setFather(father);
+		family.setMother(mother);
+		
+		family.addChild(child1);
+		family.addChild(child2);
+		
+		GLStringUtilities.resolveGenotypicAmbiguity(family);
+	
+		assertEquals(mother.getGenotype().getGlString(), FAMILY_2A_MOTHER);
+		assertEquals(father.getGenotype().getGlString(), FAMILY_2A_FATHER);
+		assertEquals(child1.getGenotype().getGlString(), FAMILY_2A_CHILD_1);
+		assertEquals(child2.getGenotype().getGlString(), FAMILY_2A_CHILD_2);
 	}
 
 }

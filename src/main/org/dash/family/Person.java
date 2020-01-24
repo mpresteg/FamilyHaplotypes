@@ -3,7 +3,7 @@ package org.dash.family;
 import java.util.List;
 
 public class Person {
-	private String glstring;
+	private Genotype genotype;
 	
 	private String ethnicity;
 	
@@ -13,12 +13,12 @@ public class Person {
 	
 	private Haplotype haplotype;
 	
-	public String getGlstring() {
-		return glstring;
+	public Genotype getGenotype() {
+		return genotype;
 	}
 
-	public void setGlstring(String glstring) {
-		this.glstring = glstring;
+	public void setGenotype(Genotype genotype) {
+		this.genotype = genotype;
 	}
 
 	public String getEthnicity() {

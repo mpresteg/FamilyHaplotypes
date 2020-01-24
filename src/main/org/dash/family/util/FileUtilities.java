@@ -19,6 +19,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.dash.family.Family;
+import org.dash.family.Genotype;
 import org.dash.family.Person;
 import org.dash.family.file.IndividualInfo;
 import org.dash.family.file.Parents;
@@ -100,7 +101,7 @@ public class FileUtilities {
 				Person person = new Person();
 				person.setLabCode(parts[LAB_CODE_POS]);
 				person.setSampleId(parts[SAMPLE_ID_POS]);
-				person.setGlstring(parts[GL_STRING_POS]);
+				person.setGenotype(new Genotype(parts[GL_STRING_POS]));
 				person.setEthnicity(parts[ETHNICITY_POS]);
 				
 				switch (parts[RELATION_POS]) {

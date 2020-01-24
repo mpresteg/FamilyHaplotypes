@@ -9,6 +9,10 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.dash.family.Family;
+import org.dash.family.Genotype;
+import org.dash.family.Person;
+
 public class GLStringUtilities {
 	private static final String GENE_DELIMITER_REGEX = "[\\^]";
 	private static final String GENE_DELIMITER = "^";
@@ -146,7 +150,7 @@ public class GLStringUtilities {
 		return elements;
 	}
 	
-	public HashMap<Locus, String> parseGLStringIntoLoci(String glString) {
+	public static HashMap<Locus, String> parseGLStringIntoLoci(String glString) {
 		HashMap<Locus, String> locusMap = new HashMap<Locus, String>();
 		
 		List<String> genes = parse(glString,
@@ -162,7 +166,70 @@ public class GLStringUtilities {
 		return locusMap;
 	}
 	
-	public String compressGenotypicAmbiguity(String singleLocusGLString) {
+	public static Family resolveGenotypicAmbiguity(Family family) {
+		List<Person> children = family.getChildren();
+		
+		Person mother = family.getMother();
+		Person father = family.getFather();
+		
+		for (Person child : children) {
+			HashMap<Locus, String> singleLocusGLStrings = child.getGenotype().getLocusGLStrings();
+			
+			StringBuffer sb = new StringBuffer();
+			int i=0;
+			for (Locus locus : singleLocusGLStrings.keySet()) {
+				String singleLocusGLString = singleLocusGLStrings.get(locus);
+				List<String> genotypeAmbiguities = parse(singleLocusGLString, GENOTYPE_AMBIGUITY_DELIMITER);
+				
+				for (int j=0;j<genotypeAmbiguities.size();j++) {					
+					List<String> geneCopies = parse(genotypeAmbiguities.get(j), GENE_COPY_DELIMITER);
+					
+					for (int k=0;k<geneCopies.size();k++) {
+						List<String> alleles = parse(geneCopies.get(k), ALLELE_AMBIGUITY_DELIMITER);
+						List<String> inheritedAlleles = new ArrayList<String>();
+						
+						for (String allele : alleles) {
+							if (mother.getGenotype().getLocusGLStrings().get(locus).contains(allele) ||
+								father.getGenotype().getLocusGLStrings().get(locus).contains(allele)) {
+								inheritedAlleles.add(allele);
+							}
+						}
+						
+						for (int l=0;l<inheritedAlleles.size();l++) {
+							sb.append(inheritedAlleles.get(j));
+							
+							if (l < inheritedAlleles.size() - 1) {
+								sb.append(ALLELE_AMBIGUITY_DELIMITER);
+							}
+						}
+						
+						if (inheritedAlleles.size() > 0 && k < geneCopies.size() - 1) {
+							sb.append(GENE_COPY_DELIMITER);
+						}
+					}
+					
+					if (j < genotypeAmbiguities.size() - 1) {
+						sb.append(GENOTYPE_AMBIGUITY_DELIMITER);
+					}
+					else if (sb.toString().endsWith(GENOTYPE_AMBIGUITY_DELIMITER)) {
+						sb = new StringBuffer(sb.substring(0, sb.length() - 1));
+					}
+				}
+				
+				if (i < singleLocusGLStrings.size() - 1) {
+					sb.append(GENE_DELIMITER);
+				}
+				
+				i++;
+			}
+			
+			child.setGenotype(new Genotype(sb.toString()));
+		}
+		
+		return family;
+	}
+	
+	public static String compressGenotypicAmbiguity(String singleLocusGLString) {
 		List<String> genotypeAmbiguities = parse(singleLocusGLString, GENOTYPE_AMBIGUITY_DELIMITER);
 		
 		List<List<String>> ambiguities = new ArrayList<List<String>>();
