@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,6 +87,16 @@ public class GLStringUtilities {
 //		}	
 		
 		return allele;
+	}
+	
+	public List<String> convertToAmbiguityStrings(List<String> geneCopies) {	
+		List<String> convertedGeneCopies = new ArrayList<String>();
+		
+		for (String geneCopy : geneCopies) {
+			convertedGeneCopies.add(GLStringUtilities.getInstance().convertToAmbiguityString(geneCopy));
+		}
+		
+		return convertedGeneCopies;
 	}
 	
 	public String normalizeGlString(String glString) {
@@ -172,8 +185,19 @@ public class GLStringUtilities {
 		Person mother = family.getMother();
 		Person father = family.getFather();
 		
+		List<Map<Locus, TreeSet<String>>> childrenSetList = new ArrayList<Map<Locus, TreeSet<String>>>();
+
 		for (Person child : children) {
-			HashMap<Locus, String> singleLocusGLStrings = child.getGenotype().getLocusGLStrings();
+			childrenSetList.add(child.getGenotype().getInheritedTypingSet());
+		}
+		// go through parent's ambiguities		
+		mother.setGenotype(new Genotype(evaluateParentsAgainstChildren(mother, childrenSetList)));
+		father.setGenotype(new Genotype(evaluateParentsAgainstChildren(father, childrenSetList)));
+		
+		HashMap<Locus, String> singleLocusGLStrings;
+
+		for (Person child : children) {
+			singleLocusGLStrings = child.getGenotype().getLocusGLStrings();
 			
 			StringBuffer sb = new StringBuffer();
 			int i=0;
@@ -181,44 +205,25 @@ public class GLStringUtilities {
 				String singleLocusGLString = singleLocusGLStrings.get(locus);
 				List<String> genotypeAmbiguities = parse(singleLocusGLString, GENOTYPE_AMBIGUITY_DELIMITER);
 				
-				for (int j=0;j<genotypeAmbiguities.size();j++) {					
-					List<String> geneCopies = parse(genotypeAmbiguities.get(j), GENE_COPY_DELIMITER);
-					
-					for (int k=0;k<geneCopies.size();k++) {
-						List<String> alleles = parse(geneCopies.get(k), ALLELE_AMBIGUITY_DELIMITER);
-						List<String> inheritedAlleles = new ArrayList<String>();
-						
-						for (String allele : alleles) {
-							if (mother.getGenotype().getLocusGLStrings().get(locus).contains(allele) ||
-								father.getGenotype().getLocusGLStrings().get(locus).contains(allele)) {
-								inheritedAlleles.add(allele);
-							}
-						}
-						
-						for (int l=0;l<inheritedAlleles.size();l++) {
-							sb.append(inheritedAlleles.get(j));
-							
-							if (l < inheritedAlleles.size() - 1) {
-								sb.append(ALLELE_AMBIGUITY_DELIMITER);
-							}
-						}
-						
-						if (inheritedAlleles.size() > 0 && k < geneCopies.size() - 1) {
-							sb.append(GENE_COPY_DELIMITER);
-						}
+				for (int j=0;j<genotypeAmbiguities.size();j++) {
+					TreeSet<String> childSet = new TreeSet<String>();
+
+					childSet.addAll(GLStringUtilities.getInstance().convertToAmbiguityStrings(parse(genotypeAmbiguities.get(j), GENE_COPY_DELIMITER)));
+										
+					if (!resolveChildAmbiguityByParents(mother, father, locus, childSet)) {
+						genotypeAmbiguities.remove(j);
+						continue;
 					}
-					
+										
+					sb.append(genotypeAmbiguities.get(j).toString());
 					if (j < genotypeAmbiguities.size() - 1) {
 						sb.append(GENOTYPE_AMBIGUITY_DELIMITER);
 					}
-					else if (sb.toString().endsWith(GENOTYPE_AMBIGUITY_DELIMITER)) {
-						sb = new StringBuffer(sb.substring(0, sb.length() - 1));
-					}
 				}
 				
-				if (i < singleLocusGLStrings.size() - 1) {
-					sb.append(GENE_DELIMITER);
-				}
+				if (sb.toString().endsWith(GENOTYPE_AMBIGUITY_DELIMITER)) sb = new StringBuffer(sb.substring(0, sb.length() - 1));
+				
+				if (i < singleLocusGLStrings.size() - 1) sb.append(GENE_DELIMITER);
 				
 				i++;
 			}
@@ -227,6 +232,83 @@ public class GLStringUtilities {
 		}
 		
 		return family;
+	}
+
+	public static String evaluateParentsAgainstChildren(Person parent,
+			List<Map<Locus, TreeSet<String>>> childrenSetList) {
+		StringBuffer modifiedGLString = new StringBuffer();
+
+		HashMap<Locus, String> singleLocusGLStrings = parent.getGenotype().getLocusGLStrings();
+		int x = 0;
+		for (Locus locus : singleLocusGLStrings.keySet()) {
+			String singleLocusGLString = singleLocusGLStrings.get(locus);
+			List<String> genotypeAmbiguities = parse(singleLocusGLString, GENOTYPE_AMBIGUITY_DELIMITER);
+			
+			for (int i=0; i < genotypeAmbiguities.size(); i++) {
+				List<String> parentSet = GLStringUtilities.getInstance().convertToAmbiguityStrings(parse(genotypeAmbiguities.get(i), GENE_COPY_DELIMITER));	
+				
+				for (Map<Locus, TreeSet<String>> childSetList : childrenSetList) {
+					TreeSet<String> childSet = childSetList.get(locus);
+					
+					// if parent set doesn't contain either of the child gene copies, we can eliminate the ambiguity entirely
+					if (!verifyChildTypingInheritence(parentSet, childSet)) {
+						genotypeAmbiguities.remove(i);
+					}
+				}
+			}
+						
+			for (int j=0;j < genotypeAmbiguities.size();j++) {
+				modifiedGLString.append(genotypeAmbiguities.get(j).toString());
+				if (j < genotypeAmbiguities.size() - 1) {
+					modifiedGLString.append(GENOTYPE_AMBIGUITY_DELIMITER);
+				}
+			}
+			
+			if (modifiedGLString.toString().endsWith(GENOTYPE_AMBIGUITY_DELIMITER)) modifiedGLString = new StringBuffer(modifiedGLString.substring(0, modifiedGLString.length() - 1));
+			
+			if (x < singleLocusGLStrings.size() - 1) modifiedGLString.append(GENE_DELIMITER);
+			
+			x++;
+		}
+		
+		return modifiedGLString.toString();
+	}
+
+	public static boolean verifyChildTypingInheritence(List<String> parentSet, TreeSet<String> childSet) {
+		for (String childTyping : childSet) {
+			if (parentSet.contains(childTyping)) {
+
+				return true;
+			}
+		}
+		
+		return false;
+	}
+
+	public static boolean resolveChildAmbiguityByParents(Person mother, Person father, Locus locus,
+			Set<String> childSet) {
+		
+		//check parents
+		
+		List<String> motherGenotypeAmbiguities = parse(mother.getGenotype().getLocusGLStrings().get(locus), GENOTYPE_AMBIGUITY_DELIMITER);
+		List<String> fatherGenotypeAmbiguities = parse(father.getGenotype().getLocusGLStrings().get(locus), GENOTYPE_AMBIGUITY_DELIMITER);
+		
+		for (String motherGenotypeAmbiguity : motherGenotypeAmbiguities) {
+			for (String fatherGenotypeAmbiguity : fatherGenotypeAmbiguities) {							
+				for (String motherGenotypeCopy : parse(motherGenotypeAmbiguity, GENE_COPY_DELIMITER)) {
+					for (String fatherGenotypeCopy : parse(fatherGenotypeAmbiguity, GENE_COPY_DELIMITER)) {
+						Set<String> parentSet = new TreeSet<String>();
+
+						parentSet.add(GLStringUtilities.getInstance().convertToAmbiguityString(motherGenotypeCopy));
+						parentSet.add(GLStringUtilities.getInstance().convertToAmbiguityString(fatherGenotypeCopy));
+																								
+						if (childSet.equals(parentSet)) return true;
+					}
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	public static String compressGenotypicAmbiguity(String singleLocusGLString) {
@@ -296,4 +378,5 @@ public class GLStringUtilities {
 		
 		return modifiedGLString.toString();
 	}
+	
 }
